@@ -61,11 +61,6 @@ public class BrokerageUserServiceImpl implements BrokerageUserService {
     }
 
     @Override
-    public List<BrokerageUserDO> getBrokerageUserList(Collection<Long> ids) {
-        return brokerageUserMapper.selectBatchIds(ids);
-    }
-
-    @Override
     public PageResult<BrokerageUserDO> getBrokerageUserPage(BrokerageUserPageReqVO pageReqVO) {
         List<Long> childIds = getChildUserIdsByLevel(pageReqVO.getBindUserId(), pageReqVO.getLevel());
         // 有”绑定用户编号“查询条件时，没有查到下级会员，直接返回空
@@ -197,6 +192,8 @@ public class BrokerageUserServiceImpl implements BrokerageUserService {
             Integer enabledCondition = tradeConfigService.getTradeConfig().getBrokerageEnabledCondition();
             if (BrokerageEnabledConditionEnum.ALL.getCondition().equals(enabledCondition)) { // 人人分销：用户默认就有分销资格
                 brokerageUser.setBrokerageEnabled(true).setBrokerageTime(LocalDateTime.now());
+            } else {
+                brokerageUser.setBrokerageEnabled(false).setBrokerageTime(LocalDateTime.now());
             }
             brokerageUserMapper.insert(fillBindUserData(bindUserId, brokerageUser));
         } else {
@@ -269,11 +266,6 @@ public class BrokerageUserServiceImpl implements BrokerageUserService {
         TradeConfigDO tradeConfig = tradeConfigService.getTradeConfig();
         if (tradeConfig == null || !BooleanUtil.isTrue(tradeConfig.getBrokerageEnabled())) {
             return false;
-        }
-
-        // 校验分佣模式：仅可后台手动设置推广员
-        if (BrokerageEnabledConditionEnum.ADMIN.getCondition().equals(tradeConfig.getBrokerageEnabledCondition())) {
-            throw exception(BROKERAGE_BIND_CONDITION_ADMIN);
         }
 
         // 校验分销关系绑定模式
